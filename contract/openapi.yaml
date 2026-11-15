@@ -1,0 +1,236 @@
+openapi: 3.0.3
+info:
+  title: Guia de Descarte Correto - CitizenTech
+  description: >
+    Servico que informa ao morador onde e como descartar residuos,
+    com consulta de pontos de coleta e perguntas em linguagem natural.
+    Todas as rotas GET sao idempotentes. POST /ask nao altera estado.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+    description: Ambiente local
+tags:
+  - name: pontos
+    description: Consulta de pontos de coleta
+  - name: ia
+    description: Perguntas em linguagem natural
+  - name: operacao
+    description: Saude do servico
+paths:
+  /health:
+    get:
+      tags: [operacao]
+      summary: Verifica se o servico esta no ar
+      operationId: getHealth
+      responses:
+        '200':
+          description: Servico disponivel
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+  /points:
+    get:
+      tags: [pontos]
+      summary: Lista pontos de coleta com paginacao e filtros
+      operationId: listPoints
+      parameters:
+        - name: limit
+          in: query
+          description: Quantidade maxima de itens por pagina
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+        - name: offset
+          in: query
+          description: Quantidade de itens a pular
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: tipo
+          in: query
+          description: Filtra por tipo de residuo aceito
+          schema:
+            $ref: '#/components/schemas/TipoResiduo'
+        - name: status
+          in: query
+          description: Filtra por status do ponto
+          schema:
+            $ref: '#/components/schemas/StatusPonto'
+      responses:
+        '200':
+          description: Pagina de pontos de coleta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PointList'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /points/{id}:
+    get:
+      tags: [pontos]
+      summary: Consulta um ponto de coleta pelo id
+      operationId: getPoint
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Identificador do ponto
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Ponto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Point'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+  /ask:
+    post:
+      tags: [ia]
+      summary: Pergunta sobre descarte em linguagem natural
+      operationId: askQuestion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AskRequest'
+      responses:
+        '200':
+          description: Resposta baseada nos pontos cadastrados ou recusa padronizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AskResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+components:
+  schemas:
+    TipoResiduo:
+      type: string
+      enum: [pilhas, oleo, moveis, entulho, eletronicos, reciclaveis]
+    StatusPonto:
+      type: string
+      enum: [aberto, fechado, manutencao]
+    Point:
+      type: object
+      required: [id, nome, endereco, tipos_aceitos, horario, status, atualizado_em]
+      properties:
+        id:
+          type: integer
+          example: 1
+        nome:
+          type: string
+          example: Ecoponto Vila Nova
+        endereco:
+          type: string
+          example: Rua das Flores, 120
+        tipos_aceitos:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/TipoResiduo'
+        horario:
+          type: string
+          example: Seg a Sab, 8h as 17h
+        status:
+          $ref: '#/components/schemas/StatusPonto'
+        atualizado_em:
+          type: string
+          format: date
+          example: '2026-11-01'
+    PointList:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Point'
+        total:
+          type: integer
+          minimum: 0
+        limit:
+          type: integer
+        offset:
+          type: integer
+    AskRequest:
+      type: object
+      required: [pergunta]
+      properties:
+        pergunta:
+          type: string
+          minLength: 1
+          maxLength: 300
+          example: Onde descarto oleo de cozinha?
+    AskResponse:
+      type: object
+      required: [resposta, pontos_citados, recusada]
+      properties:
+        resposta:
+          type: string
+        pontos_citados:
+          type: array
+          items:
+            type: integer
+        recusada:
+          type: boolean
+          description: Verdadeiro quando a pergunta esta fora do escopo de descarte
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+    ErrorResponse:
+      type: object
+      required: [codigo, mensagem]
+      properties:
+        codigo:
+          type: string
+          enum: [requisicao_invalida, nao_encontrado, entrada_invalida, servico_indisponivel]
+        mensagem:
+          type: string
+        detalhes:
+          type: array
+          items:
+            type: string
+  responses:
+    BadRequest:
+      description: Pergunta vazia apos sanitizacao ou requisicao malformada
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Recurso inexistente
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unprocessable:
+      description: Parametro ou campo fora do formato ou dos valores permitidos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unavailable:
+      description: O modelo de linguagem esta indisponivel
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
