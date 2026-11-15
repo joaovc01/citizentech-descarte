@@ -1,0 +1,10 @@
+[
+  {"id": 1, "nome": "Ecoponto Vila Nova", "endereco": "Rua das Flores, 120", "tipos_aceitos": ["pilhas", "eletronicos"], "horario": "Seg a Sab, 8h as 17h", "status": "aberto", "atualizado_em": "2026-11-01"},
+  {"id": 2, "nome": "Cooperativa Recicla Zona Leste", "endereco": "Av. Sao Miguel, 3400", "tipos_aceitos": ["reciclaveis", "oleo"], "horario": "Seg a Sex, 7h as 16h", "status": "aberto", "atualizado_em": "2026-10-28"},
+  {"id": 3, "nome": "Ecoponto Jardim Esperanca", "endereco": "Rua das Acacias, 45", "tipos_aceitos": ["entulho", "moveis"], "horario": "Seg a Dom, 6h as 18h", "status": "aberto", "atualizado_em": "2026-11-03"},
+  {"id": 4, "nome": "Ponto Mercado Municipal", "endereco": "Praca da Se, 10", "tipos_aceitos": ["oleo", "pilhas"], "horario": "Ter a Dom, 9h as 15h", "status": "fechado", "atualizado_em": "2026-09-15"},
+  {"id": 5, "nome": "Ecoponto Campo Limpo", "endereco": "Estrada do Campo Limpo, 900", "tipos_aceitos": ["moveis", "entulho", "reciclaveis"], "horario": "Seg a Sab, 7h as 17h", "status": "manutencao", "atualizado_em": "2026-10-20"},
+  {"id": 6, "nome": "Cooperativa Verde Vida", "endereco": "Rua dos Ipes, 230", "tipos_aceitos": ["reciclaveis", "eletronicos"], "horario": "Seg a Sex, 8h as 17h", "status": "aberto", "atualizado_em": "2026-11-05"},
+  {"id": 7, "nome": "Ecoponto Itaquera", "endereco": "Av. do Contorno, 1500", "tipos_aceitos": ["pilhas", "oleo", "eletronicos"], "horario": "Seg a Sab, 8h as 18h", "status": "aberto", "atualizado_em": "2026-10-30"},
+  {"id": 8, "nome": "Ponto Escola Municipal Saber", "endereco": "Rua da Escola, 12", "tipos_aceitos": ["pilhas", "oleo"], "horario": "Seg a Sex, 8h as 12h", "status": "aberto", "atualizado_em": "2026-11-02"}
+]
