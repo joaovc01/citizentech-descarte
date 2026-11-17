@@ -1,3 +1,6 @@
+import logging
+import time
+
 from fastapi import FastAPI, Path, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -13,8 +16,14 @@ from src.api.schemas import (
 from src.domain.errors import InvalidQuestion, LLMUnavailable, PointNotFound
 from src.domain.models import StatusPonto, TipoResiduo
 from src.domain.ports import LLMPort, PointRepository
-from src.domain.services import AskService, PointService
+from src.domain.services import UNVERIFIED_MESSAGE, AskService, PointService
 from src.infra.factory import build_llm, build_repository
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+logger = logging.getLogger("citizentech.api")
 
 
 def error_response(
@@ -40,6 +49,20 @@ def create_app(
 
     app = FastAPI(title="Guia de Descarte Correto - CitizenTech", version="1.0.0")
 
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        start = time.perf_counter()
+        response = await call_next(request)
+        latency_ms = (time.perf_counter() - start) * 1000
+        logger.info(
+            "event=request method=%s path=%s status=%s latency_ms=%.1f",
+            request.method,
+            request.url.path,
+            response.status_code,
+            latency_ms,
+        )
+        return response
+
     @app.exception_handler(PointNotFound)
     async def handle_not_found(request: Request, exc: PointNotFound) -> JSONResponse:
         return error_response(404, "nao_encontrado", str(exc))
@@ -54,6 +77,7 @@ def create_app(
     async def handle_llm_unavailable(
         request: Request, exc: LLMUnavailable
     ) -> JSONResponse:
+        logger.warning("event=llm_indisponivel")
         return error_response(
             503, "servico_indisponivel", "O modelo de linguagem esta indisponivel"
         )
@@ -91,7 +115,14 @@ def create_app(
 
     @app.post("/ask", response_model=AskOut, tags=["ia"])
     def ask(body: AskIn) -> AskOut:
-        return AskOut.model_validate(asker.ask(body.pergunta))
+        result = asker.ask(body.pergunta)
+        logger.info(
+            "event=ask recusada=%s bloqueada_pelo_guardrail=%s pontos_citados=%d",
+            result.recusada,
+            result.resposta == UNVERIFIED_MESSAGE,
+            len(result.pontos_citados),
+        )
+        return AskOut.model_validate(result)
 
     return app
 
